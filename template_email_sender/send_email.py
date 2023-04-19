@@ -131,7 +131,7 @@ provided_vars = {
     "recipient_email": recipient_email,
     "subject": subject,
 }
-email_body = generate_email_body(template, {**provided_vars, **template_data})
+email_body = generate_email_body(template, {**provided_vars, **template_data, 'from_email': from_email})
 logger.debug("Email body = %s", email_body)
 
 email_message = generate_email(
