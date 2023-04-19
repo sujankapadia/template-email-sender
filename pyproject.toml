@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "template-email-sender"
+version = "0.1.0"
+description = ""
+authors = ["sujankapadia <sak900@gmail.com>"]
+readme = "README.md"
+packages = [{include = "template_email_sender"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-dotenv = "^1.0.0"
+pyyaml = "^6.0"
+jinja2 = "^3.1.2"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
