@@ -13,21 +13,25 @@ import jinja2
 import yaml
 from dotenv import load_dotenv
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(filename='template-email-sender.log', filemode='w', 
+                    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("send_email")
+environment = jinja2.Environment()
 
 
 def generate_email_body(template_path: str, *args: Any, **kwargs: Any) -> str:
     body = ""
     file_path = Path(template_path)
-    with file_path.open("r", encoding="UTF-8") as template_file:
-        # Render the template with the data
-        template_str = template_file.read()
-        template_compiled = jinja2.Template(template_str)
-        body = template_compiled.render(*args, **kwargs)
-
+    try:
+        with file_path.open("r", encoding="UTF-8") as template_file:
+            # Render the template with the data
+            template_str = template_file.read()
+            template_compiled = environment.from_string(template_str)
+            body = template_compiled.render(*args, **kwargs)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Template file not found {template_path}") from None
+    
     return body
-
 
 def generate_email(
     from_email: str,
@@ -108,13 +112,12 @@ logger.debug("Recipient first = %s", recipient_first)
 logger.debug("Recipient last = %s", recipient_last)
 logger.debug("Subject = %s", subject)
 
-# Load YAML template data into dictionary
-template_data = {}
-data_path = Path(data)
-with data_path.open("r", encoding="UTF-8") as data_file:
-    data_doc = data_file.read()
-    template_data = yaml.safe_load(data_doc)
-logger.debug("Template data: %s", template_data)
+provided_vars = {
+    "recipient_first_name": recipient_first,
+    "recipient_last_name": recipient_last,
+    "recipient_email": recipient_email,
+    "subject": subject,
+}
 
 from_email = os.getenv("GMAIL_LOGIN_EMAIL")
 gmail_smtp_server = os.getenv("GMAIL_SMTP_SERVER")
@@ -125,18 +128,26 @@ logger.debug("Gmail SMTP server = %s", gmail_smtp_server)
 logger.debug("Gmail SMTP port first = %s", gmail_smtp_port)
 logger.debug("Gmail Login email = %s", from_email)
 
-provided_vars = {
-    "recipient_first_name": recipient_first,
-    "recipient_last_name": recipient_last,
-    "recipient_email": recipient_email,
-    "subject": subject,
-}
-email_body = generate_email_body(template, {**provided_vars, **template_data, 'from_email': from_email})
-logger.debug("Email body = %s", email_body)
+try:
+    # Load YAML template data into dictionary
+    template_data = {}
+    data_path = Path(data)
 
-email_message = generate_email(
-    from_email, args.recipient_email, args.subject, email_body
-)
-send_email(
-    email_message, gmail_smtp_server, gmail_smtp_port, from_email, gmail_password
-)
+    with data_path.open("r", encoding="UTF-8") as data_file:
+        data_doc = data_file.read()
+        template_data = yaml.safe_load(data_doc)
+    logger.debug("Template data: %s", template_data)
+
+    email_body = generate_email_body(template, {**provided_vars, **template_data, 'from_email': from_email})
+    logger.debug("Email body = %s", email_body)
+
+    email_message = generate_email(
+        from_email, args.recipient_email, args.subject, email_body
+    )
+    send_email(
+        email_message, gmail_smtp_server, gmail_smtp_port, from_email, gmail_password
+    )
+except Exception as e:
+    logger.exception(e)
+    print(e)
+    raise SystemExit(1)
