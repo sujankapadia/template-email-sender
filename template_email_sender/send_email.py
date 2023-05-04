@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 logging.basicConfig(filename='template-email-sender.log', filemode='w', 
                     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("send_email")
+
+
+COMMAND_NAME = "send_email"
 environment = jinja2.Environment()
 
 
@@ -29,7 +32,7 @@ def generate_email_body(template_path: str, *args: Any, **kwargs: Any) -> str:
             template_compiled = environment.from_string(template_str)
             body = template_compiled.render(*args, **kwargs)
     except FileNotFoundError:
-        raise FileNotFoundError(f"Template file not found {template_path}") from None
+        raise FileNotFoundError(f"No such template file: {template_path}") from None
     
     return body
 
@@ -75,6 +78,9 @@ def send_email(
         smtp.ehlo()
         smtp.login(gmail_login, gmail_password)
         smtp.sendmail(msg["From"], msg["To"], msg.as_string())
+
+def print_error(msg: str) -> None:
+    print(f"{COMMAND_NAME}: {msg}")
 
 
 # Arguments:
@@ -149,5 +155,5 @@ try:
     )
 except Exception as e:
     logger.exception(e)
-    print(e)
-    raise SystemExit(1)
+    print_error(str(e)) #TODO better error message: Command name etc should be displayed
+    raise SystemExit(1) from e
