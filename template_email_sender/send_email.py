@@ -13,8 +13,12 @@ import jinja2
 import yaml
 from dotenv import load_dotenv
 
-logging.basicConfig(filename='template-email-sender.log', filemode='w', 
-                    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    filename="template-email-sender.log",
+    filemode="w",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger("send_email")
 
 
@@ -33,8 +37,9 @@ def generate_email_body(template_path: str, *args: Any, **kwargs: Any) -> str:
             body = template_compiled.render(*args, **kwargs)
     except FileNotFoundError:
         raise FileNotFoundError(f"No such template file: {template_path}") from None
-    
+
     return body
+
 
 def generate_email(
     from_email: str,
@@ -79,7 +84,8 @@ def send_email(
         smtp.login(gmail_login, gmail_password)
         smtp.sendmail(msg["From"], msg["To"], msg.as_string())
 
-def print_error(msg: str) -> None:
+
+def print_cli_error(msg: str) -> None:
     print(f"{COMMAND_NAME}: {msg}")
 
 
@@ -144,7 +150,9 @@ try:
         template_data = yaml.safe_load(data_doc)
     logger.debug("Template data: %s", template_data)
 
-    email_body = generate_email_body(template, {**provided_vars, **template_data, 'from_email': from_email})
+    email_body = generate_email_body(
+        template, {**provided_vars, **template_data, "from_email": from_email}
+    )
     logger.debug("Email body = %s", email_body)
 
     email_message = generate_email(
@@ -155,5 +163,5 @@ try:
     )
 except Exception as e:
     logger.exception(e)
-    print_error(str(e)) #TODO better error message: Command name etc should be displayed
+    print_cli_error(str(e))
     raise SystemExit(1) from e
