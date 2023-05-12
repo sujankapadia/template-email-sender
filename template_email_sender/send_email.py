@@ -133,7 +133,7 @@ def print_cli_error(msg: str) -> None:
     print(f"{COMMAND_NAME}: {msg}")
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     # Arguments:
     # Path to template
     # Path to data
@@ -147,14 +147,22 @@ if __name__ == "main":
 
     # Define command line arguments
     parser = argparse.ArgumentParser(description="Send an email based on a template.")
-    parser.add_argument("-template", help="Path to the email template (Jinja2).")
-    parser.add_argument("-data", help="Path to YAML file containing template data.")
-    parser.add_argument("-recipient_email", help="Recipient email address.")
     parser.add_argument(
-        "-recipient_first_name", help="The first name of the recipient."
+        "-template", help="Path to the email template (Jinja2).", required=False
     )
-    parser.add_argument("-recipient_last_name", help="The last name of the recipient.")
-    parser.add_argument("-subject", help="Subject line of email.")
+    parser.add_argument(
+        "-data", help="Path to YAML file containing template data.", required=True
+    )
+    parser.add_argument(
+        "-recipient_email", help="Recipient email address.", required=True
+    )
+    parser.add_argument(
+        "-recipient_first_name", help="The first name of the recipient.", required=True
+    )
+    parser.add_argument(
+        "-recipient_last_name", help="The last name of the recipient.", required=True
+    )
+    parser.add_argument("-subject", help="Subject line of email.", required=True)
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -197,6 +205,8 @@ if __name__ == "main":
             data_doc = data_file.read()
             template_data = yaml.safe_load(data_doc)
         logger.debug("Template data: %s", template_data)
+        if not template:
+            template = template_data["template_file"]
 
         email_body = generate_email_body(
             template, {**provided_vars, **template_data, "from_email": from_email}
