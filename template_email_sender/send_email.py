@@ -1,8 +1,15 @@
+"""Command line utility to send a templated email
+
+Raises:
+    FileNotFoundError: if template or data file not found
+    SystemExit: to exit the program upon error
+
+Returns:
+"""
 import argparse
 import logging
 import os
 import smtplib
-import sys
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -27,6 +34,17 @@ environment = jinja2.Environment()
 
 
 def generate_email_body(template_path: str, *args: Any, **kwargs: Any) -> str:
+    """_summary_
+
+    Args:
+        template_path (str): _description_
+
+    Raises:
+        FileNotFoundError: _description_
+
+    Returns:
+        str: _description_
+    """
     body = ""
     file_path = Path(template_path)
     try:
@@ -48,6 +66,18 @@ def generate_email(
     body: str,
     attachment_path: Optional[str] = None,
 ) -> MIMEMultipart:
+    """_summary_
+
+    Args:
+        from_email (str): _description_
+        to_email (str): _description_
+        subject_line (str): _description_
+        body (str): _description_
+        attachment_path (Optional[str], optional): _description_. Defaults to None.
+
+    Returns:
+        MIMEMultipart: _description_
+    """
     # Create the email message
     msg = MIMEMultipart()
     msg["From"] = from_email
@@ -76,6 +106,15 @@ def send_email(
     gmail_login: str,
     gmail_password: str,
 ) -> None:
+    """_summary_
+
+    Args:
+        msg (MIMEMultipart): _description_
+        smtp_server (str): _description_
+        smtp_port (int): _description_
+        gmail_login (str): _description_
+        gmail_password (str): _description_
+    """
     # Send the email
     with smtplib.SMTP(smtp_server, smtp_port) as smtp:
         smtp.ehlo()
@@ -86,82 +125,95 @@ def send_email(
 
 
 def print_cli_error(msg: str) -> None:
+    """_summary_
+
+    Args:
+        msg (str): _description_
+    """
     print(f"{COMMAND_NAME}: {msg}")
 
 
-# Arguments:
-# Path to template
-# Path to data
-# Recipient first name
-# Recipient last name
-# Recipient email address
-# Path to file containing gmail parameters - optional (can read from environment or .env file)
+if __name__ == "main":
+    # Arguments:
+    # Path to template
+    # Path to data
+    # Recipient first name
+    # Recipient last name
+    # Recipient email address
+    # Path to file containing gmail parameters - optional
+    # (can read from environment or .env file)
 
-load_dotenv()
+    load_dotenv()
 
-# Define command line arguments
-parser = argparse.ArgumentParser(description="Send an email based on a template.")
-parser.add_argument("-template", help="Path to the email template (Jinja2).")
-parser.add_argument("-data", help="Path to YAML file containing template data.")
-parser.add_argument("-recipient_email", help="Recipient email address.")
-parser.add_argument("-recipient_first_name", help="The first name of the recipient.")
-parser.add_argument("-recipient_last_name", help="The last name of the recipient.")
-parser.add_argument("-subject", help="Subject line of email.")
-
-# Parse the command line arguments
-args = parser.parse_args()
-template = args.template
-data = args.data
-recipient_email = args.recipient_email
-recipient_first = args.recipient_first_name
-recipient_last = args.recipient_last_name
-subject = args.subject
-
-logger.debug("Template path = %s", template)
-logger.debug("Template data path = %s", data)
-logger.debug("Recipient email = %s", recipient_email)
-logger.debug("Recipient first = %s", recipient_first)
-logger.debug("Recipient last = %s", recipient_last)
-logger.debug("Subject = %s", subject)
-
-provided_vars = {
-    "recipient_first_name": recipient_first,
-    "recipient_last_name": recipient_last,
-    "recipient_email": recipient_email,
-    "subject": subject,
-}
-
-from_email = os.getenv("GMAIL_LOGIN_EMAIL")
-gmail_smtp_server = os.getenv("GMAIL_SMTP_SERVER")
-gmail_smtp_port = os.getenv("GMAIL_SMTP_PORT")
-gmail_password = os.getenv("GMAIL_LOGIN_PASSWORD")
-
-logger.debug("Gmail SMTP server = %s", gmail_smtp_server)
-logger.debug("Gmail SMTP port first = %s", gmail_smtp_port)
-logger.debug("Gmail Login email = %s", from_email)
-
-try:
-    # Load YAML template data into dictionary
-    template_data = {}
-    data_path = Path(data)
-
-    with data_path.open("r", encoding="UTF-8") as data_file:
-        data_doc = data_file.read()
-        template_data = yaml.safe_load(data_doc)
-    logger.debug("Template data: %s", template_data)
-
-    email_body = generate_email_body(
-        template, {**provided_vars, **template_data, "from_email": from_email}
+    # Define command line arguments
+    parser = argparse.ArgumentParser(description="Send an email based on a template.")
+    parser.add_argument("-template", help="Path to the email template (Jinja2).")
+    parser.add_argument("-data", help="Path to YAML file containing template data.")
+    parser.add_argument("-recipient_email", help="Recipient email address.")
+    parser.add_argument(
+        "-recipient_first_name", help="The first name of the recipient."
     )
-    logger.debug("Email body = %s", email_body)
+    parser.add_argument("-recipient_last_name", help="The last name of the recipient.")
+    parser.add_argument("-subject", help="Subject line of email.")
 
-    email_message = generate_email(
-        from_email, args.recipient_email, args.subject, email_body
-    )
-    send_email(
-        email_message, gmail_smtp_server, gmail_smtp_port, from_email, gmail_password
-    )
-except Exception as e:
-    logger.exception(e)
-    print_cli_error(str(e))
-    raise SystemExit(1) from e
+    # Parse the command line arguments
+    args = parser.parse_args()
+    template = args.template
+    data = args.data
+    recipient_email = args.recipient_email
+    recipient_first = args.recipient_first_name
+    recipient_last = args.recipient_last_name
+    subject = args.subject
+
+    logger.debug("Template path = %s", template)
+    logger.debug("Template data path = %s", data)
+    logger.debug("Recipient email = %s", recipient_email)
+    logger.debug("Recipient first = %s", recipient_first)
+    logger.debug("Recipient last = %s", recipient_last)
+    logger.debug("Subject = %s", subject)
+
+    provided_vars = {
+        "recipient_first_name": recipient_first,
+        "recipient_last_name": recipient_last,
+        "recipient_email": recipient_email,
+        "subject": subject,
+    }
+
+    from_email = os.getenv("GMAIL_LOGIN_EMAIL")
+    gmail_smtp_server = os.getenv("GMAIL_SMTP_SERVER")
+    gmail_smtp_port = os.getenv("GMAIL_SMTP_PORT")
+    gmail_password = os.getenv("GMAIL_LOGIN_PASSWORD")
+
+    logger.debug("Gmail SMTP server = %s", gmail_smtp_server)
+    logger.debug("Gmail SMTP port first = %s", gmail_smtp_port)
+    logger.debug("Gmail Login email = %s", from_email)
+
+    try:
+        # Load YAML template data into dictionary
+        template_data = {}
+        data_path = Path(data)
+
+        with data_path.open("r", encoding="UTF-8") as data_file:
+            data_doc = data_file.read()
+            template_data = yaml.safe_load(data_doc)
+        logger.debug("Template data: %s", template_data)
+
+        email_body = generate_email_body(
+            template, {**provided_vars, **template_data, "from_email": from_email}
+        )
+        logger.debug("Email body = %s", email_body)
+
+        email_message = generate_email(
+            from_email, args.recipient_email, args.subject, email_body
+        )
+        send_email(
+            email_message,
+            gmail_smtp_server,
+            gmail_smtp_port,
+            from_email,
+            gmail_password,
+        )
+    except Exception as e:
+        logger.exception(e)
+        print_cli_error(str(e))
+        raise SystemExit(1) from e
