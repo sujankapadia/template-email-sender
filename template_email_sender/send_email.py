@@ -9,16 +9,12 @@ Returns:
 import argparse
 import logging
 import os
-import smtplib
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from pathlib import Path
-from typing import Any, Optional
 
-import jinja2
 import yaml
 from dotenv import load_dotenv
+
+from . import template_email
 
 logging.basicConfig(
     filename="template-email-sender.log",
@@ -28,100 +24,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("send_email")
 
-
 COMMAND_NAME = "send_email"
-environment = jinja2.Environment()
-
-
-def generate_email_body(template_path: str, *args: Any, **kwargs: Any) -> str:
-    """_summary_
-
-    Args:
-        template_path (str): _description_
-
-    Raises:
-        FileNotFoundError: _description_
-
-    Returns:
-        str: _description_
-    """
-    body = ""
-    file_path = Path(template_path)
-    try:
-        with file_path.open("r", encoding="UTF-8") as template_file:
-            # Render the template with the data
-            template_str = template_file.read()
-            template_compiled = environment.from_string(template_str)
-            body = template_compiled.render(*args, **kwargs)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"No such template file: {template_path}") from None
-
-    return body
-
-
-def generate_email(
-    from_email: str,
-    to_email: str,
-    subject_line: str,
-    body: str,
-    attachment_path: Optional[str] = None,
-) -> MIMEMultipart:
-    """_summary_
-
-    Args:
-        from_email (str): _description_
-        to_email (str): _description_
-        subject_line (str): _description_
-        body (str): _description_
-        attachment_path (Optional[str], optional): _description_. Defaults to None.
-
-    Returns:
-        MIMEMultipart: _description_
-    """
-    # Create the email message
-    msg = MIMEMultipart()
-    msg["From"] = from_email
-    msg["To"] = to_email
-    msg["Subject"] = subject_line
-    msg.attach(MIMEText(body, "plain"))
-
-    # Add an attachment (optional)
-    if attachment_path is not None:
-        file_path = Path(attachment_path)
-        file_name = file_path.name
-        with file_path.open("rb") as file_to_attach:
-            attachment = MIMEApplication(file_to_attach.read(), _subtype="pdf")
-            attachment.add_header(
-                "Content-Disposition", "attachment", filename=file_name
-            )
-            msg.attach(attachment)
-
-    return msg
-
-
-def send_email(
-    msg: MIMEMultipart,
-    smtp_server: str,
-    smtp_port: int,
-    gmail_login: str,
-    gmail_password: str,
-) -> None:
-    """_summary_
-
-    Args:
-        msg (MIMEMultipart): _description_
-        smtp_server (str): _description_
-        smtp_port (int): _description_
-        gmail_login (str): _description_
-        gmail_password (str): _description_
-    """
-    # Send the email
-    with smtplib.SMTP(smtp_server, smtp_port) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.ehlo()
-        smtp.login(gmail_login, gmail_password)
-        smtp.sendmail(msg["From"], msg["To"], msg.as_string())
 
 
 def print_cli_error(msg: str) -> None:
@@ -208,15 +111,16 @@ if __name__ == "__main__":
         if not template:
             template = template_data["template_file"]
 
-        email_body = generate_email_body(
-            template, {**provided_vars, **template_data, "from_email": from_email}
+        template_path = Path(template)
+        email_body = template_email.generate_email_body(
+            template_path, {**provided_vars, **template_data, "from_email": from_email}
         )
         logger.debug("Email body = %s", email_body)
 
-        email_message = generate_email(
+        email_message = template_email.generate_email(
             from_email, args.recipient_email, args.subject, email_body
         )
-        send_email(
+        template_email.send_email(
             email_message,
             gmail_smtp_server,
             gmail_smtp_port,
