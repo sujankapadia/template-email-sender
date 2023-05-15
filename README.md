@@ -1,2 +1,2 @@
 # template-email-sender
-CLI tool to send templated emails via Python and GMail
+Package to send templated emails via Python and GMail. Also includes a CLI tool.
