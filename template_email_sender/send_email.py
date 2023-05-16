@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 from . import template_email
 
+
 logging.basicConfig(
     filename="template-email-sender.log",
     filemode="w",
@@ -90,16 +91,24 @@ if __name__ == "__main__":
         "subject": subject,
     }
 
-    from_email = os.getenv("GMAIL_LOGIN_EMAIL")
-    gmail_smtp_server = os.getenv("GMAIL_SMTP_SERVER")
-    gmail_smtp_port = os.getenv("GMAIL_SMTP_PORT")
-    gmail_password = os.getenv("GMAIL_LOGIN_PASSWORD")
-
-    logger.debug("Gmail SMTP server = %s", gmail_smtp_server)
-    logger.debug("Gmail SMTP port first = %s", gmail_smtp_port)
-    logger.debug("Gmail Login email = %s", from_email)
-
     try:
+        from_email = os.getenv("GMAIL_LOGIN_EMAIL")
+        gmail_smtp_server = os.getenv("GMAIL_SMTP_SERVER")
+        gmail_smtp_port = int(os.getenv("GMAIL_SMTP_PORT") or 587)
+        gmail_password = os.getenv("GMAIL_LOGIN_PASSWORD")
+
+        if (
+            from_email is None
+            or gmail_smtp_server is None
+            or gmail_smtp_port is None
+            or gmail_password is None
+        ):
+            raise ValueError("One or more Gmail configuration parameters missing.")
+
+        logger.debug("Gmail SMTP server = %s", gmail_smtp_server)
+        logger.debug("Gmail SMTP port first = %s", gmail_smtp_port)
+        logger.debug("Gmail Login email = %s", from_email)
+
         # Load YAML template data into dictionary
         template_data = {}
         data_path = Path(data)
