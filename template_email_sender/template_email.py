@@ -8,7 +8,7 @@ from typing import Any, Optional
 import jinja2
 
 
-environment = jinja2.Environment()
+environment = jinja2.Environment(autoescape=True)
 
 
 def generate_email_body(template_path: Path, *args: Any, **kwargs: Any) -> str:
